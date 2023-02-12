@@ -1,0 +1,205 @@
+---
+title: "Propensity Scores"
+format: html
+editor: visual
+---
+
+## Data
+
+
+
+```{r}
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(fastDummies)
+library(Hmisc)
+
+options(scipen=999)
+FILEPATH = "./NHEFS-1.xls"
+df = read_excel("./NHEFS-1.xls")
+df = df %>%
+  mutate(price_mean = (price71 + price82)/2, tax_mean = (tax71 + tax82)/2)
+
+FACTOR_COLS = c(
+  "marital"
+  ,"income"
+  ,"education"
+  ,"alcoholtype"
+  ,"exercise"
+  ,"active"
+  
+)
+
+df[FACTOR_COLS] = apply(df[FACTOR_COLS], 2, factor)
+dummy_cols(df, select_columns = FACTOR_COLS, remove_selected_columns = TRUE)
+
+df
+df$studyid = 1:nrow(df)
+str(df)
+
+exclude_vars = c(
+  "death",
+  "yrdth",
+  "modth",
+  "dadth",
+)
+
+```
+
+
+
+```{r}
+baseline = select(df, -wt82_71)
+head(baseline)
+```
+
+
+```{r}
+
+analytic_vars = c(
+  "sex",
+  "age",
+  "race",
+  "income",
+  "marital",
+  "education", # Use this instead of school
+  "ht",
+  "wt71",
+  "smokeintensity",
+  "asthma",
+  "bronch",
+  "tb",
+  "hf",
+  "hbp",
+  "pepticulcer",
+  "colitis",
+  "hepatitis",
+  "chroniccough",
+  "hayfever",
+  "diabetes",
+  "polio",
+  "tumor",
+  "nervousbreak",
+  "alcoholpy",
+  "alcoholfreq",
+  "alcoholtype",
+  "alcoholhowmuch",
+  "pica",
+  "headache",
+  "otherpain",
+  "weakheart",
+  "allergies",
+  "nerves",
+  "lackpep",
+  "hbpmed",
+  "boweltrouble",
+  "infection",
+  "active",
+  "exercise",
+  "birthcontrol",
+  "pregnancies",
+  "cholesterol"
+
+)
+
+```
+
+```{r}
+# Missing data
+replace_na_0 = list("pregnancies"=0, "alcoholhowmuch"=0)
+df[names(replace_na_0)] = replace_na(df[names(replace_na_0)], replace_na_0)
+
+
+
+
+p_missing = df[c(analytic_vars, "qsmk", "wtloss")] %>%
+  apply(2, function(x){mean(is.na(x))}) %>%
+  sort(decreasing=TRUE)
+p_missing
+
+apply(df[analytic_vars], 1, function(x){max(is.na(x)) == FALSE}) %>% mean()
+
+df = df[which(apply(df[analytic_vars], 1, function(x){max(is.na(x)) == FALSE})),]
+
+
+
+```
+
+```{r}
+m = glm(qsmk ~ ., data=df[c(analytic_vars, "qsmk")], family=binomial())
+summary(m)
+```
+
+```{r}
+df["pred"] = predict(m, type="response")
+
+p_qsmk = mean(df$qsmk)
+
+df = mutate(df, w = (p_qsmk / (pred))^qsmk * ((1-p_qsmk)/(1-pred))^(1-qsmk) )
+
+```
+
+```{r}
+ggplot(df, aes(x=pred, fill=as.factor(qsmk))) +
+  geom_histogram()
+
+ggplot(df, aes(x=w, fill=as.factor(qsmk))) +
+  geom_histogram()
+```
+
+```{r}
+library(gtsummary)
+
+tbl1 = tbl_summary(df[c("qsmk",analytic_vars)], by="qsmk") %>%
+  add_p()
+```
+```{r}
+
+
+
+calc_means_helper(tx[analytic_vars])
+means = calc_means(df, analytic_vars) 
+sd_diffs = add_sd_diff(means)
+
+```
+
+```{r}
+vars_ordered = sd_diffs %>%
+  filter(weight == "none") %>%
+  arrange((abs(sd_diff))) %>%
+  pull(var)
+
+sd_diffs %>%
+  mutate(var=factor(var, levels=vars_ordered)) %>%
+  ungroup() %>%
+  ggplot(aes(y=var, x=abs(sd_diff), color=weight, shape=weight)) +
+  geom_point() +
+  geom_vline(xintercept=0) +
+  geom_vline(xintercept=0.1)
+```
+
+
+```{r}
+sd_diffs %>%
+  mutate(weight=1*(weight == "weighted")) %>%
+  ggplot(aes(x=weight, y=abs(sd_diff), group=var)) +
+    geom_point(alpha=0.4) +
+  geom_line(alpha=0.4) +
+  geom_hline(yintercept=c(.1))
+
+```
+
+```{r}
+model_unweighted = glm(wtloss ~ qsmk, data=df, family=binomial())
+model_weighted = glm(wtloss ~ qsmk, data=df, family=binomial(), weights = df$w)
+```
+
+```{r}
+summary(model_unweighted)
+summary(model_weighted)
+```
+
+
+
