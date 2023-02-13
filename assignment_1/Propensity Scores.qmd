@@ -6,68 +6,32 @@ editor: visual
 
 ## Data
 
-
+First we'll read in the data and do some data wrangling.
 
 ```{r}
-library(readxl)
-library(dplyr)
-library(ggplot2)
-library(tidyr)
-library(fastDummies)
-library(Hmisc)
-
+source("./propensity_scores.R")
 options(scipen=999)
 FILEPATH = "./NHEFS-1.xls"
-df = read_excel("./NHEFS-1.xls")
-df = df %>%
-  mutate(price_mean = (price71 + price82)/2, tax_mean = (tax71 + tax82)/2)
-
+# Turn categorical columns into factors
 FACTOR_COLS = c(
   "marital"
-  ,"income"
+  # ,"income"
   ,"education"
   ,"alcoholtype"
   ,"exercise"
   ,"active"
-  
 )
 
-df[FACTOR_COLS] = apply(df[FACTOR_COLS], 2, factor)
-dummy_cols(df, select_columns = FACTOR_COLS, remove_selected_columns = TRUE)
-
-df
-df$studyid = 1:nrow(df)
-str(df)
-
-exclude_vars = c(
-  "death",
-  "yrdth",
-  "modth",
-  "dadth",
-)
-
-```
-
-
-
-```{r}
-baseline = select(df, -wt82_71)
-head(baseline)
-```
-
-
-```{r}
-
-analytic_vars = c(
+ANALYTIC_VARS = c(
   "sex",
   "age",
   "race",
   "income",
   "marital",
   "education", # Use this instead of school
-  "ht",
   "wt71",
   "smokeintensity",
+  "smokeyrs",
   "asthma",
   "bronch",
   "tb",
@@ -77,7 +41,6 @@ analytic_vars = c(
   "colitis",
   "hepatitis",
   "chroniccough",
-  "hayfever",
   "diabetes",
   "polio",
   "tumor",
@@ -90,7 +53,6 @@ analytic_vars = c(
   "headache",
   "otherpain",
   "weakheart",
-  "allergies",
   "nerves",
   "lackpep",
   "hbpmed",
@@ -100,106 +62,197 @@ analytic_vars = c(
   "exercise",
   "birthcontrol",
   "pregnancies",
-  "cholesterol"
-
+  "cholesterol",
+  "wtloss"
 )
+
 
 ```
 
 ```{r}
-# Missing data
-replace_na_0 = list("pregnancies"=0, "alcoholhowmuch"=0)
-df[names(replace_na_0)] = replace_na(df[names(replace_na_0)], replace_na_0)
+df = read_data(FILEPATH, ANALYTIC_VARS, FACTOR_COLS)
+str(df)
 
+```
 
+## Missing data
 
+Next, let's check for missing values in the rest of the data. If it's small, we'll drop any remaining rows with missing values.
 
-p_missing = df[c(analytic_vars, "qsmk", "wtloss")] %>%
+```{r}
+p_missing = df%>%
   apply(2, function(x){mean(is.na(x))}) %>%
   sort(decreasing=TRUE)
 p_missing
 
-apply(df[analytic_vars], 1, function(x){max(is.na(x)) == FALSE}) %>% mean()
-
-df = df[which(apply(df[analytic_vars], 1, function(x){max(is.na(x)) == FALSE})),]
+df = df[which(apply(df, 1, function(x){max(is.na(x)) == FALSE})),]
 
 
 
 ```
 
+# Propensity scores
+
 ```{r}
-m = glm(qsmk ~ ., data=df[c(analytic_vars, "qsmk")], family=binomial())
+m = glm(qsmk ~ ., data=df[c(ANALYTIC_VARS, "qsmk")], family=binomial())
 summary(m)
 ```
 
 ```{r}
-df["pred"] = predict(m, type="response")
-
-p_qsmk = mean(df$qsmk)
-
-df = mutate(df, w = (p_qsmk / (pred))^qsmk * ((1-p_qsmk)/(1-pred))^(1-qsmk) )
-
+df = add_propensity_scores(df, m)
+str(df)
 ```
 
+#### Check for overlap in propensity scores and range of weights
+
 ```{r}
-ggplot(df, aes(x=pred, fill=as.factor(qsmk))) +
-  geom_histogram()
+ggplot(df, aes(x=ps, fill=as.factor(qsmk))) +
+  geom_histogram() +
+  facet_wrap(~qsmk, scales="free_y", nrow=2)
 
 ggplot(df, aes(x=w, fill=as.factor(qsmk))) +
-  geom_histogram()
+  geom_histogram() +
+  facet_wrap(~qsmk, scales="free_y", nrow=2)
 ```
 
 ```{r}
-library(gtsummary)
-
-tbl1 = tbl_summary(df[c("qsmk",analytic_vars)], by="qsmk") %>%
-  add_p()
-```
-```{r}
-
-
-
-calc_means_helper(tx[analytic_vars])
-means = calc_means(df, analytic_vars) 
-sd_diffs = add_sd_diff(means)
-
+tab1_unweighted = CreateTableOne(ANALYTIC_VARS, strata="qsmk", data=df)
+tab1_unweighted
 ```
 
 ```{r}
-vars_ordered = sd_diffs %>%
-  filter(weight == "none") %>%
-  arrange((abs(sd_diff))) %>%
+svy_weighted = svydesign(ids = ~ 1, data = df,  weights = ~w)
+tab1_weighted = svyCreateTableOne(ANALYTIC_VARS, strata="qsmk", data=svy_weighted)
+tab1_weighted
+```
+
+```{r}
+smds_uw = ExtractSmd(tab1_unweighted)
+smds_w = ExtractSmd(tab1_weighted)
+smds = tibble(
+  var = tab1_weighted$MetaData$vars,
+  unweighted = ExtractSmd(tab1_unweighted),
+  weighted =  ExtractSmd(tab1_weighted)
+)
+
+
+```
+
+```{r}
+plot_standardized_mean_diffs = function(smds){
+  var_order =  smds %>%
+  arrange(unweighted) %>%
   pull(var)
-
-sd_diffs %>%
-  mutate(var=factor(var, levels=vars_ordered)) %>%
-  ungroup() %>%
-  ggplot(aes(y=var, x=abs(sd_diff), color=weight, shape=weight)) +
-  geom_point() +
+mutate(smds, var=factor(var, levels=var_order)) %>%
+  ggplot(aes(y=var, x=unweighted)) +
+  geom_point(color="red") + 
+  geom_point(aes(x=weighted), color="blue") +
   geom_vline(xintercept=0) +
   geom_vline(xintercept=0.1)
+}
+plot_standardized_mean_diffs(smds)
+ggsave("results/ipw_balance.png")
 ```
 
+## Outcome regression model
 
 ```{r}
-sd_diffs %>%
-  mutate(weight=1*(weight == "weighted")) %>%
-  ggplot(aes(x=weight, y=abs(sd_diff), group=var)) +
-    geom_point(alpha=0.4) +
-  geom_line(alpha=0.4) +
-  geom_hline(yintercept=c(.1))
+model_unweighted = lm(wt82_71 ~ qsmk, data=df)
+model_ipw = lm(wt82_71 ~ qsmk, data=df, weights = df$w)
+summary(model_ipw)
+```
+
+```{r}
 
 ```
 
 ```{r}
-model_unweighted = glm(wtloss ~ qsmk, data=df, family=binomial())
-model_weighted = glm(wtloss ~ qsmk, data=df, family=binomial(), weights = df$w)
+means = calc_means(df, ANALYTIC_VARS) 
+sd_diffs = add_sd_diffs(means)
+
+```
+
+```{r}
+
+plot_standard_diffs(sd_diffs)
+ggsave("./results/standardized_differences.png")
+```
+
+# Matching
+
+```{r}
+m.out_greedy = create_matched_object(df)
+matched_data_greedy = create_matched_dataset(m.out_greedy)
+m.out_summary = summary(matched_data_greedy, un=FALSE)
+plot_balance(m.out_greedy)
+ggsave("./results/matched_greedy_balance.png", height=6, width=4)
+```
+
+```{r}
+model_matched_greedy = lm(wt82_71 ~ qsmk, data=matched_data_greedy)
+
+
+
+```
+
+```{r}
+summary(model_matched_greedy)
+confint(model_matched_greedy)
+```
+
+```{r}
+m.out_optimal = create_matched_object(df, method="optimal")
+matched_data_optimal = create_matched_dataset(m.out_optimal)
+```
+
+```{r}
+plot_balance(m.out_optimal)
+ggsave("./results/matched_optimal_balance.png", height=6, width=4)
+```
+
+```{r}
+model_matched_optimal = lm(wt82_71 ~ qsmk, data=matched_data_optimal)
+```
+
+```{r}
+summary(model_matched_optimal)
+confint(model_matched_optimal)
+```
+
+```{r}
+model_unweighted = lm(wt82_71 ~ qsmk, data=df)
+model_weighted = lm(wt82_71 ~ qsmk, data=df, weights = df$w)
+```
+
+```{r}
+summary(model_weighted)
+confint(model_weighted)
 ```
 
 ```{r}
 summary(model_unweighted)
-summary(model_weighted)
+confint(model_unweighted)
 ```
 
+```{r}
+summary(model_matched_greedy)
+confint(model_matched_greedy)
+```
 
+```{r}
+model_adjusted_ps = lm(wt82_71 ~ qsmk + ps, data=select(df, -studyid))
+```
 
+```{r}
+summary(model_adjusted_ps)
+confint(model_adjusted_ps)
+```
+
+```{r}
+model_regression = lm(wt82_71 ~ ., data=df[c("wt82_71", "qsmk", ANALYTIC_VARS)])
+```
+
+```{r}
+summary(model_regression)
+confint(model_regression, "qsmk")
+```

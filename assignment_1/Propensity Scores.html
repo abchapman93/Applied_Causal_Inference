@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.1.189">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Propensity Scores</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1.6em;
+  vertical-align: middle;
+}
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { color: #008000; } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { color: #008000; font-weight: bold; } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+
+<script src="Propensity Scores_files/libs/clipboard/clipboard.min.js"></script>
+<script src="Propensity Scores_files/libs/quarto-html/quarto.js"></script>
+<script src="Propensity Scores_files/libs/quarto-html/popper.min.js"></script>
+<script src="Propensity Scores_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="Propensity Scores_files/libs/quarto-html/anchor.min.js"></script>
+<link href="Propensity Scores_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="Propensity Scores_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="Propensity Scores_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="Propensity Scores_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="Propensity Scores_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Propensity Scores</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+    
+  </div>
+  
+
+</header>
+
+<section id="data" class="level2">
+<h2 class="anchored" data-anchor-id="data">Data</h2>
+<p>First we’ll read in the data and do some data wrangling.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(<span class="st">"./propensity_scores.R"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: package 'dplyr' was built under R version 4.1.2</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'dplyr'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:stats':
+
+    filter, lag</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:base':
+
+    intersect, setdiff, setequal, union</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: package 'ggplot2' was built under R version 4.1.2</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: package 'tidyr' was built under R version 4.1.2</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: package 'Hmisc' was built under R version 4.1.2</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: lattice</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: survival</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: Formula</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'Hmisc'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:dplyr':
+
+    src, summarize</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:base':
+
+    format.pval, units</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: package 'tableone' was built under R version 4.1.2</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: grid</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: Matrix</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'Matrix'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:tidyr':
+
+    expand, pack, unpack</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'survey'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:Hmisc':
+
+    deff</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:graphics':
+
+    dotchart</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: package 'MatchIt' was built under R version 4.1.2</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: package 'cobalt' was built under R version 4.1.2</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code> cobalt (Version 4.4.1, Build Date: 2022-11-03)</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'cobalt'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:MatchIt':
+
+    lalonde</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="fu">options</span>(<span class="at">scipen=</span><span class="dv">999</span>)</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>FILEPATH <span class="ot">=</span> <span class="st">"./NHEFS-1.xls"</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Turn categorical columns into factors</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>FACTOR_COLS <span class="ot">=</span> <span class="fu">c</span>(</span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>  <span class="st">"marital"</span></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>  <span class="co"># ,"income"</span></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>  ,<span class="st">"education"</span></span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a>  ,<span class="st">"alcoholtype"</span></span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a>  ,<span class="st">"exercise"</span></span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a>  ,<span class="st">"active"</span></span>
+<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb28-12"><a href="#cb28-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-13"><a href="#cb28-13" aria-hidden="true" tabindex="-1"></a>ANALYTIC_VARS <span class="ot">=</span> <span class="fu">c</span>(</span>
+<span id="cb28-14"><a href="#cb28-14" aria-hidden="true" tabindex="-1"></a>  <span class="st">"sex"</span>,</span>
+<span id="cb28-15"><a href="#cb28-15" aria-hidden="true" tabindex="-1"></a>  <span class="st">"age"</span>,</span>
+<span id="cb28-16"><a href="#cb28-16" aria-hidden="true" tabindex="-1"></a>  <span class="st">"race"</span>,</span>
+<span id="cb28-17"><a href="#cb28-17" aria-hidden="true" tabindex="-1"></a>  <span class="st">"income"</span>,</span>
+<span id="cb28-18"><a href="#cb28-18" aria-hidden="true" tabindex="-1"></a>  <span class="st">"marital"</span>,</span>
+<span id="cb28-19"><a href="#cb28-19" aria-hidden="true" tabindex="-1"></a>  <span class="st">"education"</span>, <span class="co"># Use this instead of school</span></span>
+<span id="cb28-20"><a href="#cb28-20" aria-hidden="true" tabindex="-1"></a>  <span class="st">"wt71"</span>,</span>
+<span id="cb28-21"><a href="#cb28-21" aria-hidden="true" tabindex="-1"></a>  <span class="st">"smokeintensity"</span>,</span>
+<span id="cb28-22"><a href="#cb28-22" aria-hidden="true" tabindex="-1"></a>  <span class="st">"smokeyrs"</span>,</span>
+<span id="cb28-23"><a href="#cb28-23" aria-hidden="true" tabindex="-1"></a>  <span class="st">"asthma"</span>,</span>
+<span id="cb28-24"><a href="#cb28-24" aria-hidden="true" tabindex="-1"></a>  <span class="st">"bronch"</span>,</span>
+<span id="cb28-25"><a href="#cb28-25" aria-hidden="true" tabindex="-1"></a>  <span class="st">"tb"</span>,</span>
+<span id="cb28-26"><a href="#cb28-26" aria-hidden="true" tabindex="-1"></a>  <span class="st">"hf"</span>,</span>
+<span id="cb28-27"><a href="#cb28-27" aria-hidden="true" tabindex="-1"></a>  <span class="st">"hbp"</span>,</span>
+<span id="cb28-28"><a href="#cb28-28" aria-hidden="true" tabindex="-1"></a>  <span class="st">"pepticulcer"</span>,</span>
+<span id="cb28-29"><a href="#cb28-29" aria-hidden="true" tabindex="-1"></a>  <span class="st">"colitis"</span>,</span>
+<span id="cb28-30"><a href="#cb28-30" aria-hidden="true" tabindex="-1"></a>  <span class="st">"hepatitis"</span>,</span>
+<span id="cb28-31"><a href="#cb28-31" aria-hidden="true" tabindex="-1"></a>  <span class="st">"chroniccough"</span>,</span>
+<span id="cb28-32"><a href="#cb28-32" aria-hidden="true" tabindex="-1"></a>  <span class="st">"diabetes"</span>,</span>
+<span id="cb28-33"><a href="#cb28-33" aria-hidden="true" tabindex="-1"></a>  <span class="st">"polio"</span>,</span>
+<span id="cb28-34"><a href="#cb28-34" aria-hidden="true" tabindex="-1"></a>  <span class="st">"tumor"</span>,</span>
+<span id="cb28-35"><a href="#cb28-35" aria-hidden="true" tabindex="-1"></a>  <span class="st">"nervousbreak"</span>,</span>
+<span id="cb28-36"><a href="#cb28-36" aria-hidden="true" tabindex="-1"></a>  <span class="st">"alcoholpy"</span>,</span>
+<span id="cb28-37"><a href="#cb28-37" aria-hidden="true" tabindex="-1"></a>  <span class="st">"alcoholfreq"</span>,</span>
+<span id="cb28-38"><a href="#cb28-38" aria-hidden="true" tabindex="-1"></a>  <span class="st">"alcoholtype"</span>,</span>
+<span id="cb28-39"><a href="#cb28-39" aria-hidden="true" tabindex="-1"></a>  <span class="st">"alcoholhowmuch"</span>,</span>
+<span id="cb28-40"><a href="#cb28-40" aria-hidden="true" tabindex="-1"></a>  <span class="st">"pica"</span>,</span>
+<span id="cb28-41"><a href="#cb28-41" aria-hidden="true" tabindex="-1"></a>  <span class="st">"headache"</span>,</span>
+<span id="cb28-42"><a href="#cb28-42" aria-hidden="true" tabindex="-1"></a>  <span class="st">"otherpain"</span>,</span>
+<span id="cb28-43"><a href="#cb28-43" aria-hidden="true" tabindex="-1"></a>  <span class="st">"weakheart"</span>,</span>
+<span id="cb28-44"><a href="#cb28-44" aria-hidden="true" tabindex="-1"></a>  <span class="st">"nerves"</span>,</span>
+<span id="cb28-45"><a href="#cb28-45" aria-hidden="true" tabindex="-1"></a>  <span class="st">"lackpep"</span>,</span>
+<span id="cb28-46"><a href="#cb28-46" aria-hidden="true" tabindex="-1"></a>  <span class="st">"hbpmed"</span>,</span>
+<span id="cb28-47"><a href="#cb28-47" aria-hidden="true" tabindex="-1"></a>  <span class="st">"boweltrouble"</span>,</span>
+<span id="cb28-48"><a href="#cb28-48" aria-hidden="true" tabindex="-1"></a>  <span class="st">"infection"</span>,</span>
+<span id="cb28-49"><a href="#cb28-49" aria-hidden="true" tabindex="-1"></a>  <span class="st">"active"</span>,</span>
+<span id="cb28-50"><a href="#cb28-50" aria-hidden="true" tabindex="-1"></a>  <span class="st">"exercise"</span>,</span>
+<span id="cb28-51"><a href="#cb28-51" aria-hidden="true" tabindex="-1"></a>  <span class="st">"birthcontrol"</span>,</span>
+<span id="cb28-52"><a href="#cb28-52" aria-hidden="true" tabindex="-1"></a>  <span class="st">"pregnancies"</span>,</span>
+<span id="cb28-53"><a href="#cb28-53" aria-hidden="true" tabindex="-1"></a>  <span class="st">"cholesterol"</span>,</span>
+<span id="cb28-54"><a href="#cb28-54" aria-hidden="true" tabindex="-1"></a>  <span class="st">"wtloss"</span></span>
+<span id="cb28-55"><a href="#cb28-55" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>df <span class="ot">=</span> <span class="fu">read_data</span>(FILEPATH, ANALYTIC_VARS, FACTOR_COLS)</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a><span class="fu">str</span>(df)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>tibble [1,629 × 44] (S3: tbl_df/tbl/data.frame)
+ $ studyid       : num [1:1629] 233 235 244 245 252 257 262 266 419 420 ...
+ $ qsmk          : num [1:1629] 0 0 0 0 0 0 0 0 0 0 ...
+ $ wt82_71       : num [1:1629] -10.09 2.6 9.41 4.99 4.99 ...
+ $ sex           : num [1:1629] 0 0 1 0 0 1 1 1 0 0 ...
+ $ age           : num [1:1629] 42 36 56 68 40 43 56 29 51 43 ...
+ $ race          : num [1:1629] 1 0 1 1 0 1 0 0 0 0 ...
+ $ income        : num [1:1629] 19 18 15 15 18 11 19 22 18 16 ...
+ $ marital       : chr [1:1629] "2" "2" "3" "3" ...
+ $ education     : chr [1:1629] "1" "2" "2" "1" ...
+ $ wt71          : num [1:1629] 79 58.6 56.8 59.4 87.1 ...
+ $ smokeintensity: num [1:1629] 30 20 20 3 20 10 20 2 25 20 ...
+ $ smokeyrs      : num [1:1629] 29 24 26 53 19 21 39 9 37 25 ...
+ $ asthma        : num [1:1629] 0 0 0 0 0 0 0 0 0 0 ...
+ $ bronch        : num [1:1629] 0 0 0 0 0 0 0 0 0 0 ...
+ $ tb            : num [1:1629] 0 0 0 0 0 0 0 0 0 0 ...
+ $ hf            : num [1:1629] 0 0 0 0 0 0 0 0 0 0 ...
+ $ hbp           : num [1:1629] 1 0 0 1 0 0 0 0 0 0 ...
+ $ pepticulcer   : num [1:1629] 1 0 0 0 0 0 0 0 0 0 ...
+ $ colitis       : num [1:1629] 0 0 0 0 0 0 0 0 0 0 ...
+ $ hepatitis     : num [1:1629] 0 0 0 0 0 0 0 0 0 1 ...
+ $ chroniccough  : num [1:1629] 0 0 0 0 0 0 0 0 0 0 ...
+ $ diabetes      : num [1:1629] 1 0 0 0 0 0 1 0 0 0 ...
+ $ polio         : num [1:1629] 0 0 0 0 0 0 0 0 0 0 ...
+ $ tumor         : num [1:1629] 0 0 1 0 0 0 0 0 0 0 ...
+ $ nervousbreak  : num [1:1629] 0 0 0 0 0 0 0 0 0 0 ...
+ $ alcoholpy     : num [1:1629] 1 1 1 1 1 1 1 1 1 1 ...
+ $ alcoholfreq   : num [1:1629] 1 0 3 2 2 3 1 0 1 0 ...
+ $ alcoholtype   : chr [1:1629] "3" "1" "4" "3" ...
+ $ alcoholhowmuch: num [1:1629] 7 4 0 4 2 1 4 1 2 6 ...
+ $ pica          : num [1:1629] 0 0 0 0 0 0 0 0 0 0 ...
+ $ headache      : num [1:1629] 1 1 1 0 1 1 1 1 1 1 ...
+ $ otherpain     : num [1:1629] 0 0 1 1 0 0 0 0 1 0 ...
+ $ weakheart     : num [1:1629] 0 0 0 1 0 0 0 0 0 0 ...
+ $ nerves        : num [1:1629] 0 0 1 0 0 0 1 1 0 0 ...
+ $ lackpep       : num [1:1629] 0 0 0 0 0 0 0 0 0 0 ...
+ $ hbpmed        : num [1:1629] 1 0 0 0 0 0 0 0 0 0 ...
+ $ boweltrouble  : num [1:1629] 0 0 0 0 1 0 0 0 0 0 ...
+ $ infection     : num [1:1629] 0 1 0 0 0 0 0 0 0 0 ...
+ $ active        : chr [1:1629] "0" "0" "0" "1" ...
+ $ exercise      : chr [1:1629] "2" "0" "2" "2" ...
+ $ birthcontrol  : num [1:1629] 2 2 0 2 2 0 0 0 2 2 ...
+ $ pregnancies   : num [1:1629] 0 0 2 0 0 1 1 2 0 0 ...
+ $ cholesterol   : num [1:1629] 197 301 157 174 216 212 205 166 337 279 ...
+ $ wtloss        : num [1:1629] 0 0 0 0 0 0 0 0 0 0 ...</code></pre>
+</div>
+</div>
+</section>
+<section id="missing-data" class="level2">
+<h2 class="anchored" data-anchor-id="missing-data">Missing data</h2>
+<p>Next, let’s check for missing values in the rest of the data. If it’s small, we’ll drop any remaining rows with missing values.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>p_missing <span class="ot">=</span> df<span class="sc">%&gt;%</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">apply</span>(<span class="dv">2</span>, <span class="cf">function</span>(x){<span class="fu">mean</span>(<span class="fu">is.na</span>(x))}) <span class="sc">%&gt;%</span></span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">sort</span>(<span class="at">decreasing=</span><span class="cn">TRUE</span>)</span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>p_missing</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>       wt82_71         income    cholesterol        studyid           qsmk 
+   0.038674033    0.038060160    0.009821977    0.000000000    0.000000000 
+           sex            age           race        marital      education 
+   0.000000000    0.000000000    0.000000000    0.000000000    0.000000000 
+          wt71 smokeintensity       smokeyrs         asthma         bronch 
+   0.000000000    0.000000000    0.000000000    0.000000000    0.000000000 
+            tb             hf            hbp    pepticulcer        colitis 
+   0.000000000    0.000000000    0.000000000    0.000000000    0.000000000 
+     hepatitis   chroniccough       diabetes          polio          tumor 
+   0.000000000    0.000000000    0.000000000    0.000000000    0.000000000 
+  nervousbreak      alcoholpy    alcoholfreq    alcoholtype alcoholhowmuch 
+   0.000000000    0.000000000    0.000000000    0.000000000    0.000000000 
+          pica       headache      otherpain      weakheart         nerves 
+   0.000000000    0.000000000    0.000000000    0.000000000    0.000000000 
+       lackpep         hbpmed   boweltrouble      infection         active 
+   0.000000000    0.000000000    0.000000000    0.000000000    0.000000000 
+      exercise   birthcontrol    pregnancies         wtloss 
+   0.000000000    0.000000000    0.000000000    0.000000000 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>df <span class="ot">=</span> df[<span class="fu">which</span>(<span class="fu">apply</span>(df, <span class="dv">1</span>, <span class="cf">function</span>(x){<span class="fu">max</span>(<span class="fu">is.na</span>(x)) <span class="sc">==</span> <span class="cn">FALSE</span>})),]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="propensity-scores" class="level1">
+<h1>Propensity scores</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>m <span class="ot">=</span> <span class="fu">glm</span>(qsmk <span class="sc">~</span> ., <span class="at">data=</span>df[<span class="fu">c</span>(ANALYTIC_VARS, <span class="st">"qsmk"</span>)], <span class="at">family=</span><span class="fu">binomial</span>())</span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+glm(formula = qsmk ~ ., family = binomial(), data = df[c(ANALYTIC_VARS, 
+    "qsmk")])
+
+Deviance Residuals: 
+    Min       1Q   Median       3Q      Max  
+-1.4471  -0.7864  -0.6278   0.9525   2.3424  
+
+Coefficients:
+                  Estimate  Std. Error z value  Pr(&gt;|z|)    
+(Intercept)     -3.5997664   0.9666876  -3.724  0.000196 ***
+sex              0.0789430   0.4377241   0.180  0.856879    
+age              0.0446188   0.0110737   4.029 0.0000559 ***
+race            -0.7240668   0.2234952  -3.240  0.001196 ** 
+income           0.0340297   0.0307671   1.106  0.268709    
+marital3        -0.1651900   0.2886578  -0.572  0.567140    
+marital4        -0.2904694   0.3039491  -0.956  0.339248    
+marital5        -0.1525625   0.2997840  -0.509  0.610817    
+marital6        -0.1177471   0.3959002  -0.297  0.766149    
+marital8        13.7061041 324.7438470   0.042  0.966335    
+education2       0.0187441   0.2074240   0.090  0.927996    
+education3       0.0081818   0.1967544   0.042  0.966831    
+education4       0.0088647   0.2993823   0.030  0.976378    
+education5       0.5189324   0.2601603   1.995  0.046080 *  
+wt71             0.0058284   0.0048045   1.213  0.225090    
+smokeintensity  -0.0277209   0.0060893  -4.552 0.0000053 ***
+smokeyrs        -0.0268809   0.0105767  -2.542  0.011037 *  
+asthma           0.5464720   0.2802195   1.950  0.051157 .  
+bronch          -0.1104695   0.2465907  -0.448  0.654162    
+tb               0.8829576   0.5078252   1.739  0.082087 .  
+hf               0.6031538   0.9497746   0.635  0.525396    
+hbp              0.0955316   0.2900901   0.329  0.741916    
+pepticulcer      0.3334802   0.2012486   1.657  0.097508 .  
+colitis         -0.5385543   0.3842064  -1.402  0.160995    
+hepatitis       -0.0988590   0.4837467  -0.204  0.838071    
+chroniccough     0.2499071   0.2968298   0.842  0.399833    
+diabetes        -0.4098863   0.6928407  -0.592  0.554117    
+polio            0.0137804   0.5186039   0.027  0.978801    
+tumor           -0.0524591   0.4228361  -0.124  0.901264    
+nervousbreak    -0.8735037   0.5215893  -1.675  0.093994 .  
+alcoholpy       -0.0838508   0.2427508  -0.345  0.729779    
+alcoholfreq      0.0889688   0.0734110   1.212  0.225540    
+alcoholtype2     0.1004331   0.2590070   0.388  0.698192    
+alcoholtype3     0.0208039   0.1692289   0.123  0.902160    
+alcoholtype4    -0.0743616   0.2644072  -0.281  0.778527    
+alcoholhowmuch   0.0039685   0.0272760   0.145  0.884321    
+pica             0.0050929   0.7169336   0.007  0.994332    
+headache        -0.0335279   0.1340075  -0.250  0.802437    
+otherpain        0.0758558   0.1538333   0.493  0.621939    
+weakheart       -0.8746829   0.5219418  -1.676  0.093773 .  
+nerves          -0.0319281   0.1941021  -0.164  0.869345    
+lackpep         -0.2308814   0.3093848  -0.746  0.455511    
+hbpmed           0.1771714   0.4128656   0.429  0.667832    
+boweltrouble     0.0977201   0.2712219   0.360  0.718626    
+infection       -0.0425482   0.1852906  -0.230  0.818380    
+active1          0.1328775   0.1396913   0.951  0.341492    
+active2          0.2283827   0.2339273   0.976  0.328917    
+exercise1        0.3414934   0.1852370   1.844  0.065249 .  
+exercise2        0.3749594   0.1948331   1.925  0.054290 .  
+birthcontrol     0.3028583   0.2131026   1.421  0.155263    
+pregnancies      0.0123406   0.0390881   0.316  0.752221    
+cholesterol     -0.0004237   0.0014806  -0.286  0.774766    
+wtloss          -0.0543940   0.4535285  -0.120  0.904535    
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for binomial family taken to be 1)
+
+    Null deviance: 1688.9  on 1491  degrees of freedom
+Residual deviance: 1578.1  on 1439  degrees of freedom
+AIC: 1684.1
+
+Number of Fisher Scoring iterations: 11</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>df <span class="ot">=</span> <span class="fu">add_propensity_scores</span>(df, m)</span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="fu">str</span>(df)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>tibble [1,492 × 46] (S3: tbl_df/tbl/data.frame)
+ $ studyid       : num [1:1492] 233 235 244 245 252 257 262 266 419 420 ...
+ $ qsmk          : num [1:1492] 0 0 0 0 0 0 0 0 0 0 ...
+ $ wt82_71       : num [1:1492] -10.09 2.6 9.41 4.99 4.99 ...
+ $ sex           : num [1:1492] 0 0 1 0 0 1 1 1 0 0 ...
+ $ age           : num [1:1492] 42 36 56 68 40 43 56 29 51 43 ...
+ $ race          : num [1:1492] 1 0 1 1 0 1 0 0 0 0 ...
+ $ income        : num [1:1492] 19 18 15 15 18 11 19 22 18 16 ...
+ $ marital       : chr [1:1492] "2" "2" "3" "3" ...
+ $ education     : chr [1:1492] "1" "2" "2" "1" ...
+ $ wt71          : num [1:1492] 79 58.6 56.8 59.4 87.1 ...
+ $ smokeintensity: num [1:1492] 30 20 20 3 20 10 20 2 25 20 ...
+ $ smokeyrs      : num [1:1492] 29 24 26 53 19 21 39 9 37 25 ...
+ $ asthma        : num [1:1492] 0 0 0 0 0 0 0 0 0 0 ...
+ $ bronch        : num [1:1492] 0 0 0 0 0 0 0 0 0 0 ...
+ $ tb            : num [1:1492] 0 0 0 0 0 0 0 0 0 0 ...
+ $ hf            : num [1:1492] 0 0 0 0 0 0 0 0 0 0 ...
+ $ hbp           : num [1:1492] 1 0 0 1 0 0 0 0 0 0 ...
+ $ pepticulcer   : num [1:1492] 1 0 0 0 0 0 0 0 0 0 ...
+ $ colitis       : num [1:1492] 0 0 0 0 0 0 0 0 0 0 ...
+ $ hepatitis     : num [1:1492] 0 0 0 0 0 0 0 0 0 1 ...
+ $ chroniccough  : num [1:1492] 0 0 0 0 0 0 0 0 0 0 ...
+ $ diabetes      : num [1:1492] 1 0 0 0 0 0 1 0 0 0 ...
+ $ polio         : num [1:1492] 0 0 0 0 0 0 0 0 0 0 ...
+ $ tumor         : num [1:1492] 0 0 1 0 0 0 0 0 0 0 ...
+ $ nervousbreak  : num [1:1492] 0 0 0 0 0 0 0 0 0 0 ...
+ $ alcoholpy     : num [1:1492] 1 1 1 1 1 1 1 1 1 1 ...
+ $ alcoholfreq   : num [1:1492] 1 0 3 2 2 3 1 0 1 0 ...
+ $ alcoholtype   : chr [1:1492] "3" "1" "4" "3" ...
+ $ alcoholhowmuch: num [1:1492] 7 4 0 4 2 1 4 1 2 6 ...
+ $ pica          : num [1:1492] 0 0 0 0 0 0 0 0 0 0 ...
+ $ headache      : num [1:1492] 1 1 1 0 1 1 1 1 1 1 ...
+ $ otherpain     : num [1:1492] 0 0 1 1 0 0 0 0 1 0 ...
+ $ weakheart     : num [1:1492] 0 0 0 1 0 0 0 0 0 0 ...
+ $ nerves        : num [1:1492] 0 0 1 0 0 0 1 1 0 0 ...
+ $ lackpep       : num [1:1492] 0 0 0 0 0 0 0 0 0 0 ...
+ $ hbpmed        : num [1:1492] 1 0 0 0 0 0 0 0 0 0 ...
+ $ boweltrouble  : num [1:1492] 0 0 0 0 1 0 0 0 0 0 ...
+ $ infection     : num [1:1492] 0 1 0 0 0 0 0 0 0 0 ...
+ $ active        : chr [1:1492] "0" "0" "0" "1" ...
+ $ exercise      : chr [1:1492] "2" "0" "2" "2" ...
+ $ birthcontrol  : num [1:1492] 2 2 0 2 2 0 0 0 2 2 ...
+ $ pregnancies   : num [1:1492] 0 0 2 0 0 1 1 2 0 0 ...
+ $ cholesterol   : num [1:1492] 197 301 157 174 216 212 205 166 337 279 ...
+ $ wtloss        : num [1:1492] 0 0 0 0 0 0 0 0 0 0 ...
+ $ ps            : Named num [1:1492] 0.137 0.132 0.13 0.163 0.357 ...
+  ..- attr(*, "names")= chr [1:1492] "1" "2" "3" "4" ...
+ $ w             : Named num [1:1492] 0.865 0.86 0.858 0.892 1.162 ...
+  ..- attr(*, "names")= chr [1:1492] NA NA NA NA ...</code></pre>
+</div>
+</div>
+<section id="check-for-overlap-in-propensity-scores-and-range-of-weights" class="level4">
+<h4 class="anchored" data-anchor-id="check-for-overlap-in-propensity-scores-and-range-of-weights">Check for overlap in propensity scores and range of weights</h4>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(df, <span class="fu">aes</span>(<span class="at">x=</span>ps, <span class="at">fill=</span><span class="fu">as.factor</span>(qsmk))) <span class="sc">+</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>() <span class="sc">+</span></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>qsmk, <span class="at">scales=</span><span class="st">"free_y"</span>, <span class="at">nrow=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="Propensity-Scores_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid" width="672"></p>
+</div>
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(df, <span class="fu">aes</span>(<span class="at">x=</span>w, <span class="at">fill=</span><span class="fu">as.factor</span>(qsmk))) <span class="sc">+</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>() <span class="sc">+</span></span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>qsmk, <span class="at">scales=</span><span class="st">"free_y"</span>, <span class="at">nrow=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="Propensity-Scores_files/figure-html/unnamed-chunk-6-2.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>tab1_unweighted <span class="ot">=</span> <span class="fu">CreateTableOne</span>(ANALYTIC_VARS, <span class="at">strata=</span><span class="st">"qsmk"</span>, <span class="at">data=</span>df)</span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>tab1_unweighted</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                            Stratified by qsmk
+                             0              1              p      test
+  n                            1114            378                    
+  sex (mean (SD))              0.53 (0.50)    0.46 (0.50)   0.029     
+  age (mean (SD))             42.84 (11.83)  45.89 (12.36) &lt;0.001     
+  race (mean (SD))             0.14 (0.35)    0.09 (0.29)   0.007     
+  income (mean (SD))          17.94 (2.69)   18.14 (2.48)   0.207     
+  marital (%)                                               0.202     
+     2                          871 (78.2)     309 (81.7)             
+     3                           61 ( 5.5)      23 ( 6.1)             
+     4                           68 ( 6.1)      17 ( 4.5)             
+     5                           71 ( 6.4)      18 ( 4.8)             
+     6                           43 ( 3.9)      10 ( 2.6)             
+     8                            0 ( 0.0)       1 ( 0.3)             
+  education (%)                                             0.009     
+     1                          200 (18.0)      76 (20.1)             
+     2                          249 (22.4)      72 (19.0)             
+     3                          465 (41.7)     144 (38.1)             
+     4                           90 ( 8.1)      25 ( 6.6)             
+     5                          110 ( 9.9)      61 (16.1)             
+  wt71 (mean (SD))            70.46 (15.18)  72.13 (15.47)  0.066     
+  smokeintensity (mean (SD))  21.25 (11.49)  18.53 (12.38) &lt;0.001     
+  smokeyrs (mean (SD))        24.15 (11.75)  25.87 (12.87)  0.017     
+  asthma (mean (SD))           0.04 (0.20)    0.07 (0.25)   0.073     
+  bronch (mean (SD))           0.08 (0.28)    0.08 (0.28)   0.900     
+  tb (mean (SD))               0.01 (0.09)    0.02 (0.14)   0.061     
+  hf (mean (SD))               0.01 (0.07)    0.01 (0.07)   0.983     
+  hbp (mean (SD))              1.06 (0.96)    1.03 (0.95)   0.598     
+  pepticulcer (mean (SD))      0.10 (0.30)    0.13 (0.33)   0.123     
+  colitis (mean (SD))          0.04 (0.19)    0.03 (0.16)   0.339     
+  hepatitis (mean (SD))        0.02 (0.14)    0.02 (0.13)   0.632     
+  chroniccough (mean (SD))     0.05 (0.21)    0.06 (0.23)   0.458     
+  diabetes (mean (SD))         1.00 (1.00)    0.94 (1.00)   0.312     
+  polio (mean (SD))            0.01 (0.11)    0.02 (0.13)   0.629     
+  tumor (mean (SD))            0.02 (0.15)    0.02 (0.15)   0.963     
+  nervousbreak (mean (SD))     0.03 (0.17)    0.01 (0.11)   0.069     
+  alcoholpy (mean (SD))        0.89 (0.33)    0.86 (0.36)   0.174     
+  alcoholfreq (mean (SD))      1.89 (1.30)    1.99 (1.31)   0.237     
+  alcoholtype (%)                                           0.770     
+     1                          406 (36.4)     127 (33.6)             
+     2                           91 ( 8.2)      31 ( 8.2)             
+     3                          338 (30.3)     118 (31.2)             
+     4                          279 (25.0)     102 (27.0)             
+  alcoholhowmuch (mean (SD))   2.49 (3.06)    2.29 (2.59)   0.238     
+  pica (mean (SD))             1.00 (1.00)    0.94 (1.00)   0.313     
+  headache (mean (SD))         0.64 (0.48)    0.62 (0.49)   0.447     
+  otherpain (mean (SD))        0.24 (0.42)    0.25 (0.43)   0.526     
+  weakheart (mean (SD))        0.02 (0.15)    0.02 (0.13)   0.340     
+  nerves (mean (SD))           0.15 (0.35)    0.13 (0.34)   0.422     
+  lackpep (mean (SD))          0.06 (0.23)    0.04 (0.20)   0.315     
+  hbpmed (mean (SD))           1.02 (0.99)    0.98 (0.98)   0.476     
+  boweltrouble (mean (SD))     1.06 (0.97)    1.01 (0.97)   0.373     
+  infection (mean (SD))        0.15 (0.36)    0.14 (0.34)   0.586     
+  active (%)                                                0.237     
+     0                          509 (45.7)     155 (41.0)             
+     1                          507 (45.5)     183 (48.4)             
+     2                           98 ( 8.8)      40 (10.6)             
+  exercise (%)                                              0.137     
+     0                          229 (20.6)      60 (15.9)             
+     1                          464 (41.7)     168 (44.4)             
+     2                          421 (37.8)     150 (39.7)             
+  birthcontrol (mean (SD))     1.05 (0.95)    1.18 (0.93)   0.026     
+  pregnancies (mean (SD))      1.69 (2.36)    1.53 (2.33)   0.255     
+  cholesterol (mean (SD))    218.45 (45.20) 222.59 (45.88)  0.126     
+  wtloss (mean (SD))           0.03 (0.16)    0.02 (0.13)   0.364     </code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>svy_weighted <span class="ot">=</span> <span class="fu">svydesign</span>(<span class="at">ids =</span> <span class="sc">~</span> <span class="dv">1</span>, <span class="at">data =</span> df,  <span class="at">weights =</span> <span class="sc">~</span>w)</span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>tab1_weighted <span class="ot">=</span> <span class="fu">svyCreateTableOne</span>(ANALYTIC_VARS, <span class="at">strata=</span><span class="st">"qsmk"</span>, <span class="at">data=</span>svy_weighted)</span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>tab1_weighted</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                            Stratified by qsmk
+                             0               1              p      test
+  n                          1112.39         375.92                    
+  sex (mean (SD))               0.51 (0.50)    0.50 (0.50)   0.822     
+  age (mean (SD))              43.61 (12.02)  43.76 (12.26)  0.851     
+  race (mean (SD))              0.13 (0.34)    0.12 (0.33)   0.772     
+  income (mean (SD))           18.00 (2.68)   18.12 (2.48)   0.496     
+  marital (%)                                                0.944     
+     2                         881.7 (79.3)   300.3 (79.9)             
+     3                          61.3 ( 5.5)    18.3 ( 4.9)             
+     4                          63.5 ( 5.7)    20.4 ( 5.4)             
+     5                          66.0 ( 5.9)    21.9 ( 5.8)             
+     6                          39.9 ( 3.6)    14.7 ( 3.9)             
+     8                           0.0 ( 0.0)     0.3 ( 0.1)             
+  education (%)                                              0.982     
+     1                         203.9 (18.3)    63.9 (17.0)             
+     2                         239.6 (21.5)    82.0 (21.8)             
+     3                         454.4 (40.8)   154.5 (41.1)             
+     4                          86.4 ( 7.8)    31.7 ( 8.4)             
+     5                         128.1 (11.5)    43.9 (11.7)             
+  wt71 (mean (SD))             70.84 (15.19)  70.63 (15.71)  0.840     
+  smokeintensity (mean (SD))   20.58 (11.29)  20.55 (13.59)  0.980     
+  smokeyrs (mean (SD))         24.64 (11.93)  24.73 (12.69)  0.913     
+  asthma (mean (SD))            0.05 (0.22)    0.05 (0.23)   0.741     
+  bronch (mean (SD))            0.08 (0.28)    0.09 (0.28)   0.928     
+  tb (mean (SD))                0.01 (0.11)    0.01 (0.10)   0.888     
+  hf (mean (SD))                0.01 (0.07)    0.01 (0.08)   0.854     
+  hbp (mean (SD))               1.05 (0.96)    1.08 (0.96)   0.706     
+  pepticulcer (mean (SD))       0.10 (0.31)    0.10 (0.30)   0.712     
+  colitis (mean (SD))           0.03 (0.18)    0.03 (0.18)   0.982     
+  hepatitis (mean (SD))         0.02 (0.14)    0.02 (0.13)   0.905     
+  chroniccough (mean (SD))      0.05 (0.22)    0.05 (0.22)   0.954     
+  diabetes (mean (SD))          0.99 (1.00)    1.01 (1.00)   0.694     
+  polio (mean (SD))             0.01 (0.11)    0.01 (0.10)   0.634     
+  tumor (mean (SD))             0.02 (0.15)    0.02 (0.15)   0.799     
+  nervousbreak (mean (SD))      0.03 (0.16)    0.02 (0.15)   0.862     
+  alcoholpy (mean (SD))         0.88 (0.34)    0.87 (0.35)   0.594     
+  alcoholfreq (mean (SD))       1.92 (1.31)    1.92 (1.33)   0.988     
+  alcoholtype (%)                                            0.977     
+     1                         396.9 (35.7)   129.9 (34.5)             
+     2                          91.7 ( 8.2)    33.4 ( 8.9)             
+     3                         339.4 (30.5)   115.6 (30.8)             
+     4                         284.4 (25.6)    97.1 (25.8)             
+  alcoholhowmuch (mean (SD))    2.43 (2.96)    2.31 (2.46)   0.452     
+  pica (mean (SD))              0.99 (1.00)    1.01 (1.00)   0.702     
+  headache (mean (SD))          0.63 (0.48)    0.62 (0.49)   0.684     
+  otherpain (mean (SD))         0.24 (0.43)    0.23 (0.42)   0.881     
+  weakheart (mean (SD))         0.02 (0.15)    0.02 (0.15)   0.855     
+  nerves (mean (SD))            0.14 (0.35)    0.13 (0.34)   0.823     
+  lackpep (mean (SD))           0.05 (0.22)    0.05 (0.22)   0.817     
+  hbpmed (mean (SD))            1.01 (0.99)    1.04 (0.99)   0.683     
+  boweltrouble (mean (SD))      1.04 (0.97)    1.07 (0.97)   0.726     
+  infection (mean (SD))         0.15 (0.35)    0.15 (0.36)   0.854     
+  active (%)                                                 0.724     
+     0                         495.6 (44.6)   163.2 (43.4)             
+     1                         515.4 (46.3)   182.3 (48.5)             
+     2                         101.4 ( 9.1)    30.5 ( 8.1)             
+  exercise (%)                                               0.789     
+     0                         216.3 (19.4)    70.3 (18.7)             
+     1                         474.6 (42.7)   168.8 (44.9)             
+     2                         421.5 (37.9)   136.9 (36.4)             
+  birthcontrol (mean (SD))      1.09 (0.95)    1.10 (0.94)   0.784     
+  pregnancies (mean (SD))       1.64 (2.35)    1.57 (2.27)   0.663     
+  cholesterol (mean (SD))     219.21 (45.14) 219.50 (45.53)  0.923     
+  wtloss (mean (SD))            0.02 (0.16)    0.02 (0.15)   0.956     </code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a>smds_uw <span class="ot">=</span> <span class="fu">ExtractSmd</span>(tab1_unweighted)</span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>smds_w <span class="ot">=</span> <span class="fu">ExtractSmd</span>(tab1_weighted)</span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>smds <span class="ot">=</span> <span class="fu">tibble</span>(</span>
+<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">var =</span> tab1_weighted<span class="sc">$</span>MetaData<span class="sc">$</span>vars,</span>
+<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">unweighted =</span> <span class="fu">ExtractSmd</span>(tab1_unweighted),</span>
+<span id="cb46-6"><a href="#cb46-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">weighted =</span>  <span class="fu">ExtractSmd</span>(tab1_weighted)</span>
+<span id="cb46-7"><a href="#cb46-7" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a>plot_standardized_mean_diffs <span class="ot">=</span> <span class="cf">function</span>(smds){</span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>  var_order <span class="ot">=</span>  smds <span class="sc">%&gt;%</span></span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(unweighted) <span class="sc">%&gt;%</span></span>
+<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(var)</span>
+<span id="cb47-5"><a href="#cb47-5" aria-hidden="true" tabindex="-1"></a><span class="fu">mutate</span>(smds, <span class="at">var=</span><span class="fu">factor</span>(var, <span class="at">levels=</span>var_order)) <span class="sc">%&gt;%</span></span>
+<span id="cb47-6"><a href="#cb47-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">y=</span>var, <span class="at">x=</span>unweighted)) <span class="sc">+</span></span>
+<span id="cb47-7"><a href="#cb47-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">color=</span><span class="st">"red"</span>) <span class="sc">+</span> </span>
+<span id="cb47-8"><a href="#cb47-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x=</span>weighted), <span class="at">color=</span><span class="st">"blue"</span>) <span class="sc">+</span></span>
+<span id="cb47-9"><a href="#cb47-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept=</span><span class="dv">0</span>) <span class="sc">+</span></span>
+<span id="cb47-10"><a href="#cb47-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept=</span><span class="fl">0.1</span>)</span>
+<span id="cb47-11"><a href="#cb47-11" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb47-12"><a href="#cb47-12" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_standardized_mean_diffs</span>(smds)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="Propensity-Scores_files/figure-html/unnamed-chunk-10-1.png" class="img-fluid" width="672"></p>
+</div>
+<div class="sourceCode cell-code" id="cb48"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="st">"results/ipw_balance.png"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Saving 7 x 5 in image</code></pre>
+</div>
+</div>
+</section>
+<section id="outcome-regression-model" class="level2">
+<h2 class="anchored" data-anchor-id="outcome-regression-model">Outcome regression model</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb50"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a>model_unweighted <span class="ot">=</span> <span class="fu">lm</span>(wt82_71 <span class="sc">~</span> qsmk, <span class="at">data=</span>df)</span>
+<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a>model_ipw <span class="ot">=</span> <span class="fu">lm</span>(wt82_71 <span class="sc">~</span> qsmk, <span class="at">data=</span>df, <span class="at">weights =</span> df<span class="sc">$</span>w)</span>
+<span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(model_ipw)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = wt82_71 ~ qsmk, data = df, weights = df$w)
+
+Weighted Residuals:
+    Min      1Q  Median      3Q     Max 
+-43.292  -3.942  -0.016   4.247  48.519 
+
+Coefficients:
+            Estimate Std. Error t value            Pr(&gt;|t|)    
+(Intercept)   1.8336     0.2329   7.873 0.00000000000000663 ***
+qsmk          3.0587     0.4634   6.600 0.00000000005690753 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 7.768 on 1490 degrees of freedom
+Multiple R-squared:  0.02841,   Adjusted R-squared:  0.02775 
+F-statistic: 43.56 on 1 and 1490 DF,  p-value: 0.00000000005691</code></pre>
+</div>
+</div>
+<div class="cell">
+
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb52"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a>means <span class="ot">=</span> <span class="fu">calc_means</span>(df, ANALYTIC_VARS) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 378  57
+[1] 1114   57
+[1] 378  57
+[1] 1114   57</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb54"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a>sd_diffs <span class="ot">=</span> <span class="fu">add_sd_diffs</span>(means)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb55"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_standard_diffs</span>(sd_diffs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="Propensity-Scores_files/figure-html/unnamed-chunk-14-1.png" class="img-fluid" width="672"></p>
+</div>
+<div class="sourceCode cell-code" id="cb56"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="st">"./results/standardized_differences.png"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Saving 7 x 5 in image</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="matching" class="level1">
+<h1>Matching</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb58"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a>m.out_greedy <span class="ot">=</span> <span class="fu">create_matched_object</span>(df)</span>
+<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a>matched_data_greedy <span class="ot">=</span> <span class="fu">create_matched_dataset</span>(m.out_greedy)</span>
+<span id="cb58-3"><a href="#cb58-3" aria-hidden="true" tabindex="-1"></a>m.out_summary <span class="ot">=</span> <span class="fu">summary</span>(matched_data_greedy, <span class="at">un=</span><span class="cn">FALSE</span>)</span>
+<span id="cb58-4"><a href="#cb58-4" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_balance</span>(m.out_greedy)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="Propensity-Scores_files/figure-html/unnamed-chunk-15-1.png" class="img-fluid" width="672"></p>
+</div>
+<div class="sourceCode cell-code" id="cb59"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="st">"./results/matched_greedy_balance.png"</span>, <span class="at">height=</span><span class="dv">6</span>, <span class="at">width=</span><span class="dv">4</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb60"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a>model_matched_greedy <span class="ot">=</span> <span class="fu">lm</span>(wt82_71 <span class="sc">~</span> qsmk, <span class="at">data=</span>matched_data_greedy)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb61"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb61-1"><a href="#cb61-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(model_matched_greedy)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = wt82_71 ~ qsmk, data = matched_data_greedy)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-42.228  -4.130   0.030   4.516  47.591 
+
+Coefficients:
+            Estimate Std. Error t value     Pr(&gt;|t|)    
+(Intercept)   0.9474     0.4296   2.205       0.0277 *  
+qsmk          3.4458     0.6075   5.672 0.0000000201 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 8.352 on 754 degrees of freedom
+Multiple R-squared:  0.04092,   Adjusted R-squared:  0.03965 
+F-statistic: 32.17 on 1 and 754 DF,  p-value: 0.00000002015</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb63"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a><span class="fu">confint</span>(model_matched_greedy)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                2.5 %   97.5 %
+(Intercept) 0.1040523 1.790751
+qsmk        2.2531361 4.638488</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb65"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb65-1"><a href="#cb65-1" aria-hidden="true" tabindex="-1"></a>m.out_optimal <span class="ot">=</span> <span class="fu">create_matched_object</span>(df, <span class="at">method=</span><span class="st">"optimal"</span>)</span>
+<span id="cb65-2"><a href="#cb65-2" aria-hidden="true" tabindex="-1"></a>matched_data_optimal <span class="ot">=</span> <span class="fu">create_matched_dataset</span>(m.out_optimal)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb66"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_balance</span>(m.out_optimal)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="Propensity-Scores_files/figure-html/unnamed-chunk-19-1.png" class="img-fluid" width="672"></p>
+</div>
+<div class="sourceCode cell-code" id="cb67"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="st">"./results/matched_optimal_balance.png"</span>, <span class="at">height=</span><span class="dv">6</span>, <span class="at">width=</span><span class="dv">4</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb68"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a>model_matched_optimal <span class="ot">=</span> <span class="fu">lm</span>(wt82_71 <span class="sc">~</span> qsmk, <span class="at">data=</span>matched_data_optimal)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb69"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(model_matched_optimal)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = wt82_71 ~ qsmk, data = matched_data_optimal)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-42.179  -4.285   0.020   4.596  47.640 
+
+Coefficients:
+            Estimate Std. Error t value     Pr(&gt;|t|)    
+(Intercept)   0.8988     0.4307   2.087       0.0372 *  
+qsmk          3.4944     0.6091   5.737 0.0000000139 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 8.373 on 754 degrees of freedom
+Multiple R-squared:  0.04183,   Adjusted R-squared:  0.04056 
+F-statistic: 32.92 on 1 and 754 DF,  p-value: 0.00000001392</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb71"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb71-1"><a href="#cb71-1" aria-hidden="true" tabindex="-1"></a><span class="fu">confint</span>(model_matched_optimal)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                 2.5 %   97.5 %
+(Intercept) 0.05334724 1.744233
+qsmk        2.29878604 4.690060</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb73"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb73-1"><a href="#cb73-1" aria-hidden="true" tabindex="-1"></a>model_unweighted <span class="ot">=</span> <span class="fu">lm</span>(wt82_71 <span class="sc">~</span> qsmk, <span class="at">data=</span>df)</span>
+<span id="cb73-2"><a href="#cb73-2" aria-hidden="true" tabindex="-1"></a>model_weighted <span class="ot">=</span> <span class="fu">lm</span>(wt82_71 <span class="sc">~</span> qsmk, <span class="at">data=</span>df, <span class="at">weights =</span> df<span class="sc">$</span>w)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb74"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb74-1"><a href="#cb74-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(model_weighted)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = wt82_71 ~ qsmk, data = df, weights = df$w)
+
+Weighted Residuals:
+    Min      1Q  Median      3Q     Max 
+-43.292  -3.942  -0.016   4.247  48.519 
+
+Coefficients:
+            Estimate Std. Error t value            Pr(&gt;|t|)    
+(Intercept)   1.8336     0.2329   7.873 0.00000000000000663 ***
+qsmk          3.0587     0.4634   6.600 0.00000000005690753 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 7.768 on 1490 degrees of freedom
+Multiple R-squared:  0.02841,   Adjusted R-squared:  0.02775 
+F-statistic: 43.56 on 1 and 1490 DF,  p-value: 0.00000000005691</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb76"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb76-1"><a href="#cb76-1" aria-hidden="true" tabindex="-1"></a><span class="fu">confint</span>(model_weighted)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>               2.5 %   97.5 %
+(Intercept) 1.376756 2.290466
+qsmk        2.149664 3.967721</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb78"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb78-1"><a href="#cb78-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(model_unweighted)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = wt82_71 ~ qsmk, data = df)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-43.283  -3.941   0.036   4.230  46.536 
+
+Coefficients:
+            Estimate Std. Error t value             Pr(&gt;|t|)    
+(Intercept)   2.0025     0.2335   8.577 &lt; 0.0000000000000002 ***
+qsmk          2.3907     0.4639   5.154          0.000000289 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 7.793 on 1490 degrees of freedom
+Multiple R-squared:  0.01751,   Adjusted R-squared:  0.01686 
+F-statistic: 26.56 on 1 and 1490 DF,  p-value: 0.0000002894</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb80"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb80-1"><a href="#cb80-1" aria-hidden="true" tabindex="-1"></a><span class="fu">confint</span>(model_unweighted)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>               2.5 %   97.5 %
+(Intercept) 1.544501 2.460491
+qsmk        1.480806 3.300629</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb82"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb82-1"><a href="#cb82-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(model_matched_greedy)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = wt82_71 ~ qsmk, data = matched_data_greedy)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-42.228  -4.130   0.030   4.516  47.591 
+
+Coefficients:
+            Estimate Std. Error t value     Pr(&gt;|t|)    
+(Intercept)   0.9474     0.4296   2.205       0.0277 *  
+qsmk          3.4458     0.6075   5.672 0.0000000201 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 8.352 on 754 degrees of freedom
+Multiple R-squared:  0.04092,   Adjusted R-squared:  0.03965 
+F-statistic: 32.17 on 1 and 754 DF,  p-value: 0.00000002015</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb84"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb84-1"><a href="#cb84-1" aria-hidden="true" tabindex="-1"></a><span class="fu">confint</span>(model_matched_greedy)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                2.5 %   97.5 %
+(Intercept) 0.1040523 1.790751
+qsmk        2.2531361 4.638488</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb86"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb86-1"><a href="#cb86-1" aria-hidden="true" tabindex="-1"></a>model_adjusted_ps <span class="ot">=</span> <span class="fu">lm</span>(wt82_71 <span class="sc">~</span> qsmk <span class="sc">+</span> ps, <span class="at">data=</span><span class="fu">select</span>(df, <span class="sc">-</span>studyid))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb87"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb87-1"><a href="#cb87-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(model_adjusted_ps)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = wt82_71 ~ qsmk + ps, data = select(df, -studyid))
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-43.019  -3.997  -0.070   4.291  47.316 
+
+Coefficients:
+            Estimate Std. Error t value             Pr(&gt;|t|)    
+(Intercept)   4.4933     0.4710   9.540 &lt; 0.0000000000000002 ***
+qsmk          3.1749     0.4763   6.666      0.0000000000369 ***
+ps          -10.6158     1.7500  -6.066      0.0000000016594 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 7.701 on 1489 degrees of freedom
+Multiple R-squared:  0.04121,   Adjusted R-squared:  0.03992 
+F-statistic:    32 on 2 and 1489 DF,  p-value: 0.00000000000002475</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb89"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb89-1"><a href="#cb89-1" aria-hidden="true" tabindex="-1"></a><span class="fu">confint</span>(model_adjusted_ps)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                 2.5 %    97.5 %
+(Intercept)   3.569431  5.417233
+qsmk          2.240675  4.109173
+ps          -14.048541 -7.182980</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb91"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb91-1"><a href="#cb91-1" aria-hidden="true" tabindex="-1"></a>model_regression <span class="ot">=</span> <span class="fu">lm</span>(wt82_71 <span class="sc">~</span> ., <span class="at">data=</span>df[<span class="fu">c</span>(<span class="st">"wt82_71"</span>, <span class="st">"qsmk"</span>, ANALYTIC_VARS)])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb92"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb92-1"><a href="#cb92-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(model_regression)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = wt82_71 ~ ., data = df[c("wt82_71", "qsmk", ANALYTIC_VARS)])
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-44.074  -4.057  -0.293   4.006  45.798 
+
+Coefficients:
+                Estimate Std. Error t value         Pr(&gt;|t|)    
+(Intercept)    13.494660   2.915588   4.628 0.00000401601020 ***
+qsmk            3.170960   0.456767   6.942 0.00000000000583 ***
+sex            -2.724963   1.341728  -2.031         0.042445 *  
+age            -0.199080   0.036272  -5.489 0.00000004782003 ***
+race            0.860344   0.635967   1.353         0.176328    
+income          0.105134   0.092964   1.131         0.258283    
+marital3        1.131121   0.905688   1.249         0.211902    
+marital4        0.999567   0.887191   1.127         0.260072    
+marital5        1.839607   0.864170   2.129         0.033444 *  
+marital6       -0.781650   1.118957  -0.699         0.484945    
+marital8       -0.322988   7.467938  -0.043         0.965508    
+education2      0.940692   0.644017   1.461         0.144326    
+education3      0.657390   0.616192   1.067         0.286214    
+education4      1.278280   0.908405   1.407         0.159593    
+education5     -0.218177   0.848693  -0.257         0.797158    
+wt71           -0.090886   0.014727  -6.171 0.00000000087964 ***
+smokeintensity  0.026382   0.018015   1.464         0.143300    
+smokeyrs        0.065521   0.035086   1.867         0.062044 .  
+asthma          0.512389   0.937874   0.546         0.584923    
+bronch          0.206270   0.758853   0.272         0.785801    
+tb              0.080857   1.783812   0.045         0.963852    
+hf             -0.646470   2.882613  -0.224         0.822583    
+hbp            -0.866899   0.940113  -0.922         0.356619    
+pepticulcer    -0.702950   0.648995  -1.083         0.278929    
+colitis        -1.908981   1.095999  -1.742         0.081762 .  
+hepatitis       0.580724   1.440178   0.403         0.686838    
+chroniccough   -0.871430   0.946135  -0.921         0.357183    
+diabetes       -4.626139   1.968698  -2.350         0.018916 *  
+polio          -0.224725   1.689381  -0.133         0.894194    
+tumor          -0.602577   1.285607  -0.469         0.639348    
+nervousbreak   -2.467979   1.259646  -1.959         0.050275 .  
+alcoholpy       0.201778   0.766761   0.263         0.792467    
+alcoholfreq     0.357308   0.226448   1.578         0.114814    
+alcoholtype2   -0.035951   0.794188  -0.045         0.963900    
+alcoholtype3   -0.500061   0.521909  -0.958         0.338154    
+alcoholtype4   -0.997246   0.810417  -1.231         0.218698    
+alcoholhowmuch -0.089643   0.078923  -1.136         0.256214    
+pica            7.225498   2.023613   3.571         0.000368 ***
+headache        0.435818   0.417110   1.045         0.296267    
+otherpain       0.029840   0.479135   0.062         0.950350    
+weakheart      -0.816963   1.434056  -0.570         0.568979    
+nerves          1.070931   0.591028   1.812         0.070198 .  
+lackpep         1.146366   0.890066   1.288         0.197968    
+hbpmed         -0.910542   1.364266  -0.667         0.504609    
+boweltrouble   -0.975247   0.846275  -1.152         0.249349    
+infection      -0.580295   0.566141  -1.025         0.305534    
+active1        -0.967030   0.433080  -2.233         0.025708 *  
+active2        -0.078145   0.739947  -0.106         0.915907    
+exercise1       0.354447   0.555784   0.638         0.523744    
+exercise2       0.358971   0.585208   0.613         0.539704    
+birthcontrol   -0.450402   0.651046  -0.692         0.489166    
+pregnancies     0.094033   0.118203   0.796         0.426443    
+cholesterol     0.001295   0.004592   0.282         0.777944    
+wtloss          1.417972   1.279850   1.108         0.268081    
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 7.396 on 1438 degrees of freedom
+Multiple R-squared:  0.146, Adjusted R-squared:  0.1146 
+F-statistic: 4.639 on 53 and 1438 DF,  p-value: &lt; 0.00000000000000022</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb94"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb94-1"><a href="#cb94-1" aria-hidden="true" tabindex="-1"></a><span class="fu">confint</span>(model_regression, <span class="st">"qsmk"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>        2.5 %   97.5 %
+qsmk 2.274959 4.066961</code></pre>
+</div>
+</div>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    setTimeout(function() {
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const cites = ref.parentNode.getAttribute('data-cites').split(' ');
+    tippyHover(ref, function() {
+      var popup = window.document.createElement('div');
+      cites.forEach(function(cite) {
+        var citeDiv = window.document.createElement('div');
+        citeDiv.classList.add('hanging-indent');
+        citeDiv.classList.add('csl-entry');
+        var biblioDiv = window.document.getElementById('ref-' + cite);
+        if (biblioDiv) {
+          citeDiv.innerHTML = biblioDiv.innerHTML;
+        }
+        popup.appendChild(citeDiv);
+      });
+      return popup.innerHTML;
+    });
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
