@@ -1,0 +1,196 @@
+---
+title: "Instrumental Variable Homework"
+author: "Alec Chapman"
+format: html
+editor: visual
+---
+
+# Read in data
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(gtsummary)
+library(AER)
+ANALYTIC_VARS = c("logmedexpense", "healthinsu", "illnesses", "age", "logincome", "firmlocation")
+MATPLOTLIB_COLORS <- c("#1f77b4", "#ff7f0e", "#2ca02c", "#d62728",
+                       "#9467bd", "#8c564b", "#e377c2", "#7f7f7f",
+                       "#bcbd22", "#17becf")
+
+FILEPATH = "./iv_health.csv"
+df = read.csv(FILEPATH)
+df = df[ANALYTIC_VARS]
+df$healthinsu = factor(df$healthinsu)
+df$firmlocation = factor(df$firmlocation)
+
+str(df)
+```
+
+# 1. Descriptive statistics
+
+First, we can look at the distribution of `logmedexpense`. We can see that this follows a skewed, normal-ish distribution with a mean of 6.48.
+
+```{r}
+print(mean(df$logmedexpense))# 6.48.
+ggplot(df, aes(x=logmedexpense)) + geom_histogram()
+```
+
+Next we can look at the main exposure variable, `healthinsu`, and its relationship to the outcome. 38% of observations have health insurance.
+
+```{r}
+mean(df$healthinsu == 1)
+```
+
+The histogram and boxplot below show that individuals with and without health insurance appear to have similar distributions of medical expenses in this dataset.
+
+```{r}
+ggplot(df, aes(x=logmedexpense, fill=healthinsu)) + 
+  geom_histogram() +
+  scale_fill_manual(values=MATPLOTLIB_COLORS) +
+  facet_wrap(~healthinsu, nrow=2, scales = "free_y")
+
+ggplot(df, aes(x=healthinsu, y=logmedexpense, color=healthinsu)) +
+  geom_boxplot() +
+  scale_color_manual(values=MATPLOTLIB_COLORS)
+```
+
+# 2. Naive models
+
+First we'll run a univariate linear regression model with medical expenses as the dependent variable and health insurance as the independent variable. This tells us that having health insurance is associated with a multiplicative increase of $e^{0.09} = 1.09$ (95% CI = \[1.03, 1.15\]) in annual expenditures (not sure about units here).
+
+```{r}
+model_naive = lm(logmedexpense ~ healthinsu, data=df)
+tbl_regression(model_naive)
+```
+
+When adjusting for covariates, we get a similar estimate of $e^{0.07} = 1.07$ \[1.02, 1.13\].
+
+```{r}
+model_adjusted = lm(logmedexpense ~ healthinsu + illnesses + age + logincome, data=df)
+tbl_regression(model_adjusted)
+```
+
+# 3. Endogeneity
+
+Health insurance is likely not exogeneous (i.e., unconfounded) in this analysis. Several variables that would have a causal effect on medical expenses would also be expected to have an effect on whether or not a patient has health insurance. For example, patients with multiple illnesses will have a higher need for being insured and will almost certainly have higher medical expenses. Patients who are older may be more likely to be employed and receive and insurance and will also have higher expenses. Because of this, the univariate analysis we performed above does not explain a causal effect between having health insurance and medical expenses.
+
+# 4. Instrumental variable analysis
+
+There seem to be two possible options for an instrumental variables: `logincome` and `firmlocation`. The criteria for an instrumental variable are:
+
+1.  **Relevance:** The variable is associated with the exposure (i.e., `healthinsu`). That is, $P[A = 1|Z=z] != P[A=1|Z=z']$, where `A` is having health insurance and `Z` is the instrument.
+2.  **Exclusion:** The variable is only associated with the outcome (`logmedexpense`) through the exposure variable - $Y_i(a, z) = Y_i(a)$
+3.  **Exogeneity**: The relationship between the outcome and instrument is not confounded - i.e., no common causes between `healthinsu` and Z.
+
+Considering `logincome` , I don't think this would meet Criterion #3. Having a higher income is likely associated with other health-related factors such as having a healthier lifestyle that would affect health-related costs independent of having health insurance. So I don't think this would make a good instrument.
+
+`firmlocation` could reasonably meet these two criteria. We can first check #1 by testing the association between `logmedexpense` and `healthinsu`. We can see below that among individuals who work in a firm with multiple locations (`firmlocation` = 1), 61% of individuals have healthinsurace, whereas among individuals who work in a firm with a single location only 38% have healthinsurance. Running a logistic regression model testing `healthinsu ~ firmlocation` shows that this is statistically significant. So Criterion #1 is met.
+
+Criterion #2 is more challenging to test from the data, but I think it seems reasonable to assume that the size of a company would only affect medical expenditures through whether their exmployees have health insurance.
+
+```{r}
+df %>%
+  group_by(firmlocation) %>%
+  summarize(healthinsu = mean(healthinsu == 1))
+
+```
+
+The DAG I would propose for this analysis is this:
+
+![](images/paste-FF008380.png){width="359"}
+
+# 5. Instrumental variable analysis using `ivreg`
+
+First, we can use the `ivreg` function from the `AER` package. This gives us an IV estimate of the **local average treatment effect (LATE)** of $-1.5$, telling us that having health insurance has a average effect of $e^{-1.5} = 0.22$ multiplicative increase (e.g., a nearly 5x reduction) of health expenses among compliers.
+
+```{r}
+ivreg(logmedexpense ~ healthinsu  + illnesses + age + logincome | firmlocation + illnesses + age + logincome, data=df)
+```
+
+# 6. 2-stage regression
+
+We can also perform the IV analysis manually using **2-stage OLS**.
+
+**Notation**:
+
+$A$: The exposure variable (`healthinsu`); binary
+
+$Y$: The outcome variable (`logmedexpense`); continuous
+
+$Z$: The instrumental variable (`firmlocation`)
+
+$X$: The other covariates/confounders
+
+**Stage 1**: Estimate the effect of the IV on exposure using OLS.
+
+$E[A|X,Z] = \alpha_0 + \alpha_1 Z + \alpha_2 X$
+
+We'll then take predicted values of `A` from this model: $\hat{A} = \hat{\alpha_0} + \hat{\alpha_1} Z + \hat{\alpha_2} X$
+
+**Stage 2**: Estimate the effect of the exposure on the outcome using the predicted values from before.
+
+$E[Y|A,X] = \beta_0 + \beta_1 \hat{A} + \beta_2 \epsilon_2 + \beta_3 X$
+
+The estimated coefficent $\hat{\beta}_1$ is then an estimate of the LATE.
+
+```{r}
+## Stage 1
+model_1 = lm(healthinsu ~ firmlocation + illnesses + age + logincome, data=mutate(df, healthinsu=as.integer(healthinsu)))
+summary(model_1)
+a_hat = predict(model_1)
+df$a_hat = a_hat
+```
+
+```{r}
+## Stage 2
+model_2 = lm(logmedexpense ~ a_hat + illnesses + age + logincome, data=df)
+summary(model_2)
+```
+
+2-stage OLS gives an estimate of $\hat{\beta}_{LATE} = -1.5$, the same that we got from using `ivreg`.
+
+Because the exposure variable is binary, it might make more sense to model it using logistic regression in Stage 1 rather than OLS. In this case, we can use **2-stage residual inclusion (2SRI)**.
+
+**Stage 1**: Estimate the effect of the IV on exposure using logistic regression
+
+$logit(P[A=1]) = \alpha_0 + \alpha_1 Z + \alpha_2 X$
+
+$\hat{\epsilon} = A - \$
+
+We'll take the residuals $\epsilon_1$ for the next stage.
+
+**Stage 2**: Estimate the effect of the exposure on the outcome while including the residuals from stage 1
+
+$Y = \beta_0 + \beta_1 A + \beta_2 \hat{\epsilon}_2 + \beta_3 X + \epsilon_2$
+
+```{r}
+## Stage 1
+model_1_2sri = glm(healthinsu ~ firmlocation + illnesses + age + logincome, data=df, family=binomial())
+
+summary(model_1_2sri)
+epsilon = residuals(model_1_2sri)
+df$epsilon = epsilon
+```
+
+```{r}
+## Stage 2
+model_2_2sri = lm(logmedexpense ~ healthinsu + epsilon + illnesses + age + logincome, data=df)
+summary(model_2_2sri)
+```
+
+This gives an estimate with a larger magnitude: -2.01.
+
+## Interpretation
+
+Both the 2-stage OLS and 2SRI models give negative coefficients, suggesting that having health insurance *decreases* health expenses, which is different from the univariate and multivariate estimates. This suggests that the relationship between health insurance and health expenses could be distorted by unmeasured confounding.
+
+By performing an ANOVA test, we can see that the Stage-1 model has a large partial F-statistic (57.1), which is well above the value of 10 that is commonly used as a rule of thumb.
+
+```{r}
+tbl_regression(model_2)
+```
+
+```{r}
+model_1_reduced = lm(healthinsu ~  illnesses + age + logincome, data=mutate(df, healthinsu=as.integer(healthinsu)))
+anova(model_1_reduced, model_1)
+```
